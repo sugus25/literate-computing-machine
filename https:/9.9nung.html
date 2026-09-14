@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎬 9.9nung — M3U Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+    body { max-width: 750px; margin: 20px auto; padding: 0 16px; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    h1 { text-align: center; color: #f8fafc; margin-bottom: 24px; font-size: 22px; }
+    .note { background: #1e293b; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: #fef3c7; }
+    .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #334155; }
+    label { display: block; margin: 14px 0 6px; font-weight: 500; color: #cbd5e1; font-size: 14px; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #475569; border-radius: 8px; font-size: 15px; background: #0f172a; color: #f1f5f9; }
+    input:focus { outline: none; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+    .row { display: flex; gap: 12px; margin-top: 8px; }
+    .row > div { flex: 1; }
+    button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 16px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #f59e0b; color: #1e293b; }
+    .btn-primary:hover:not(:disabled) { background: #d97706; }
+    .btn-copy { background: #10b981; color: white; }
+    .btn-down { background: #3b82f6; color: white; }
+    .btn-manual { background: #8b5cf6; color: white; width: auto; margin: 0; padding: 10px 16px; }
+    .btn-group { display: flex; gap: 10px; margin-top: 16px; }
+    #status { margin: 16px 0; padding: 14px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; line-height: 1.6; }
+    .status-info { background: #1e293b; color: #93c5fd; }
+    .status-success { background: #064e3b; color: #6ee7b7; }
+    .status-error { background: #450a0a; color: #fca5a5; }
+    .status-warn { background: #422006; color: #fcd34d; }
+    pre { background: #020617; color: #94a3b8; padding: 16px; border-radius: 8px; margin-top: 12px; overflow-x: auto; font-size: 11px; max-height: 350px; white-space: pre-wrap; word-break: break-all; border: 1px solid #1e293b; }
+    .result-box { display: none; margin-top: 20px; }
+    .manual-box { margin-top: 20px; padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #334155; }
+    .manual-input { display: flex; gap: 8px; margin-top: 10px; }
+    .manual-input input { flex: 1; margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>🎬 9.9nung — M3U Generator</h1>
+
+  <div class="note">
+    💡 <strong>วิธีใช้:</strong><br>
+    • ระบบจะดึงรายการจากหน้าแรก → เข้าแต่ละหน้าเพื่อหาลิงก์สตรีม<br>
+    • ถ้าไม่เจออัตโนมัติ → ใช้ช่อง "เพิ่มเอง" ด้านล่าง<br>
+    • จำกัด 3 หน้าต่อครั้ง
+  </div>
+
+  <div class="card">
+    <label>🔗 ลิงก์หน้าเว็บ</label>
+    <input type="text" id="baseUrl" value="https://9.9nung.com/" placeholder="https://9.9nung.com/">
+    
+    <div class="row">
+      <div>
+        <label>หน้าเริ่ม</label>
+        <input type="number" id="startPage" value="1" min="1" max="10">
+      </div>
+      <div>
+        <label>หน้าสิ้นสุด</label>
+        <input type="number" id="endPage" value="2" min="1" max="10">
+      </div>
+    </div>
+
+    <button id="genBtn" class="btn-primary" onclick="generate()">
+      🚀 เริ่มสร้างรายการ M3U
+    </button>
+
+    <div class="manual-box">
+      <label>✍️ เพิ่มลิงก์สตรีมเอง (จาก Shou Browser / F12)</label>
+      <div class="manual-input">
+        <input type="text" id="manualName" placeholder="ชื่อหนัง เช่น The Bitter Taste">
+      </div>
+      <div class="manual-input">
+        <input type="text" id="manualUrl" placeholder="ลิงก์ .m3u8 / .mp4 ที่เจอ">
+      </div>
+      <button class="btn-manual" onclick="addManual()">➕ เพิ่มลงรายการ</button>
+    </div>
+  </div>
+
+  <div id="status" class="status-info" style="display:none;"></div>
+
+  <div id="resultBox" class="result-box">
+    <div class="card">
+      <h3 style="margin-bottom:12px;color:#94a3b8;">📋 ผลลัพธ์ M3U</h3>
+      <div class="btn-group">
+        <button class="btn-copy" onclick="copyM3u()">📋 คัดลอก</button>
+        <button class="btn-down" onclick="downloadM3u()">📥 ดาวน์โหลด .m3u</button>
+      </div>
+      <pre id="m3uOutput"></pre>
+    </div>
+  </div>
+
+<script>
+let m3uContent = "";
+let manualItems = [];
+
+const statusEl = document.getElementById('status');
+const resultBox = document.getElementById('resultBox');
+const m3uOutput = document.getElementById('m3uOutput');
+const genBtn = document.getElementById('genBtn');
+
+// Proxy เพื่อข้าม CORS
+const PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => url
+];
+
+function showStatus(text, type = 'info') {
+  statusEl.style.display = 'block';
+  statusEl.className = `status-${type}`;
+  statusEl.textContent = text;
+}
+
+async function fetchWithProxy(url) {
+  for (let i = 0; i < PROXIES.length; i++) {
+    try {
+      const res = await fetch(PROXIES[i](url), {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+      });
+      if (res.ok) return { success: true, html: await res.text() };
+    } catch {}
+  }
+  return { success: false };
+}
+
+// ค้นหาลิงก์สตรีม — รองรับรูปแบบต่างๆ
+function extractStreamUrl(html) {
+  const patterns = [
+    /["']?(https?:\/\/[^"']+\.m3u8[^"']*)["']?/i,
+    /["']?(https?:\/\/[^"']+\.mp4[^"']*)["']?/i,
+    /["']?(https?:\/\/[^"']+\.mpd[^"']*)["']?/i,
+    /source\s*[:=]\s*["']([^"']+\.(?:m3u8|mp4|mpd)[^"']*)["']/i,
+    /file\s*[:=]\s*["']([^"']+\.(?:m3u8|mp4|mpd)[^"']*)["']/i,
+    /iframe[^>]+src="([^"]+)"/i,
+    /https?:\/\/[^\s"'<>]+\.(?:m3u8|mp4|mpd)[^\s"'<>]*/gi
+  ];
+
+  for (const p of patterns) {
+    const match = html.match(p);
+    if (match) {
+      let url = match[1] || match[0];
+      if (url.startsWith('//')) url = 'https:' + url;
+      if (url.includes('.m3u8') || url.includes('.mp4') || url.includes('.mpd')) {
+        return url;
+      }
+      // ถ้าเป็น iframe → ลองข้างในต่อ
+      if (url.includes('iframe') || url.includes('embed')) {
+        return { type: 'iframe', src: url };
+      }
+    }
+  }
+  return null;
+}
+
+async function generate() {
+  const baseUrl = document.getElementById('baseUrl').value.trim();
+  const start = parseInt(document.getElementById('startPage').value) || 1;
+  const end = parseInt(document.getElementById('endPage').value) || 1;
+
+  if (!baseUrl.includes('9.9nung.com')) {
+    showStatus("❌ ต้องเป็นลิงก์จาก 9.9nung.com เท่านั้น", 'error');
+    return;
+  }
+  if (end < start || end - start + 1 > 3) {
+    showStatus("⚠️ ช่วงหน้าไม่ถูกต้อง (สูงสุด 3 หน้า)", 'warn');
+    return;
+  }
+
+  genBtn.disabled = true;
+  genBtn.textContent = "⏳ กำลังทำงาน...";
+  resultBox.style.display = 'none';
+  statusEl.style.display = 'none';
+
+  try {
+    const allMovies = [...manualItems]; // รวมรายการที่เพิ่มเอง
+
+    for (let page = start; page <= end; page++) {
+      let pageUrl = baseUrl;
+      if (page > 1) pageUrl += (baseUrl.includes('?') ? '&' : '?') + `page=${page}`;
+
+      showStatus(`📄 กำลังอ่านหน้าที่ ${page}...`, 'info');
+
+      const fetchResult = await fetchWithProxy(pageUrl);
+      if (!fetchResult.success) {
+        showStatus(`⚠️ ข้ามหน้าที่ ${page} — เข้าไม่ได้`, 'warn');
+        continue;
+      }
+
+      const html = fetchResult.html;
+      
+      // ดึงลิงก์รายการหนัง — รูปแบบ 9.9nung.com/movies/ชื่อเรื่อง
+      const linkPattern = /href="(\/movies\/[^"]+)"[^>]*>([\s\S]{3,80}?)<\/a>/gi;
+      const links = [];
+      const names = [];
+      let m;
+
+      while ((m = linkPattern.exec(html)) !== null) {
+        const href = m[1];
+        let text = m[2].replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ');
+        if (href.startsWith('/movies/') && text.length > 2 && text.length < 60) {
+          links.push(new URL(href, "https://9.9nung.com").href);
+          names.push(text);
+        }
+      }
+
+      if (links.length === 0) {
+        showStatus(`⚠️ หน้าที่ ${page} ไม่พบรายการหนัง`, 'warn');
+        continue;
+      }
+
+      showStatus(`✅ พบ ${links.length} รายการ ในหน้าที่ ${page}`, 'success');
+
+      // เข้าแต่ละหน้าดึงลิงก์สตรีม
+      for (let i = 0; i < links.length; i++) {
+        const detailUrl = links[i];
+        const name = names[i];
+
+        try {
+          const dRes = await fetchWithProxy(detailUrl);
+          if (!dRes.success) continue;
+
+          const dHtml = dRes.html;
+          let streamUrl = extractStreamUrl(dHtml);
+
+          // ถ้าเป็น iframe → ลองดึงข้างใน
+          if (streamUrl && typeof streamUrl === 'object' && streamUrl.type === 'iframe') {
+            const ifRes = await fetchWithProxy(streamUrl.src);
+            if (ifRes.success) {
+              streamUrl = extractStreamUrl(ifRes.html);
+            }
+          }
+
+          if (streamUrl && typeof streamUrl === 'string') {
+            if (streamUrl.startsWith('//')) streamUrl = 'https:' + streamUrl;
+            allMovies.push({
+              name,
+              streamUrl,
+              logo: "",
+              referer: "https://9.9nung.com/"
+            });
+          }
+        } catch (e) {}
+        
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    if (allMovies.length === 0) {
+      showStatus(`⚠️ ยังไม่พบลิงก์สตรีมอัตโนมัติ\n\n💡 วิธีแก้:\n1. เปิดลิงก์หนังใน Shou Browser\n2. กด F12 → แท็บ Network → ค้นหา .m3u8\n3. ก๊อปปี้ลิงก์ → วางในช่อง "เพิ่มเอง" ด้านล่าง`, 'warn');
+      return;
+    }
+
+    // สร้างไฟล์ M3U
+    m3uContent = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:15
+# Generated: ${new Date().toLocaleString('th-TH')}
+# Source: https://9.9nung.com
+# Total: ${allMovies.length} รายการ
+
+`;
+
+    allMovies.forEach((item, idx) => {
+      m3uContent += `#EXTINF:-1 tvg-chno="${idx+1}",${item.name}\n`;
+      m3uContent += `${item.streamUrl}|referer=${item.referer}\n`;
+    });
+
+    m3uOutput.textContent = m3uContent;
+    resultBox.style.display = 'block';
+    showStatus(`✅ สำเร็จ! พบทั้งหมด ${allMovies.length} รายการ`, 'success');
+
+  } catch (err) {
+    showStatus(`❌ ผิดพลาด: ${err.message}`, 'error');
+  } finally {
+    genBtn.disabled = false;
+    genBtn.textContent = "🚀 เริ่มสร้างรายการ M3U";
+  }
+}
+
+// เพิ่มลิงก์เอง
+function addManual() {
+  const name = document.getElementById('manualName').value.trim() || `รายการ ${manualItems.length + 1}`;
+  let url = document.getElementById('manualUrl').value.trim();
+  
+  if (!url || (!url.includes('.m3u8') && !url.includes('.mp4') && !url.includes('.mpd'))) {
+    alert("❌ ต้องเป็นลิงก์ .m3u8 / .mp4 / .mpd เท่านั้นครับ");
+    return;
+  }
+  
+  if (url.startsWith('//')) url = 'https:' + url;
+  
+  manualItems.push({
+    name,
+    streamUrl: url,
+    logo: "",
+    referer: "https://9.9nung.com/"
+  });
+  
+  alert(`✅ เพิ่ม "${name}" แล้ว!\n\nกด "เริ่มสร้างรายการ M3U" เพื่อรวมทุกรายการ`);
+  
+  document.getElementById('manualName').value = "";
+  document.getElementById('manualUrl').value = "";
+}
+
+function copyM3u() {
+  navigator.clipboard.writeText(m3uContent)
+    .then(() => alert("✅ คัดลอกเรียบร้อย!"))
+    .catch(() => alert("❌ ไม่สามารถคัดลอกได้"));
+}
+
+function downloadM3u() {
+  const blob = new Blob([m3uContent], { type: 'application/vnd.apple.mpegurl;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `9nung_${new Date().toISOString().slice(0,10)}.m3u`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+  </html>
+  
